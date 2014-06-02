@@ -1,0 +1,44 @@
+#!/usr/bin/env ruby
+# coding: utf-8
+
+require 'chef'
+require 'trollop'
+
+opts = Trollop::options do
+  version "Collect-agent for chef"
+  banner <<-EOS
+Collect-agent utility for collecting automatic attribute nodes and then push them to the chef.
+
+Usage:
+       collect-agent [options]
+where [options] are:
+EOS
+
+  opt :config, "Config chef file", :default => "/etc/chef/client.rb"
+  opt :plugins, "Ohai plugins directory", :default => "/usr/share/ohai/plugins"
+  opt :chef_lock, "Chef-lock file", :default => '/var/lock/chef-client.lock'
+end
+
+# Get chef config
+Chef::Config.from_file(opts[:config])
+Ohai::Log.init(STDOUT)
+Ohai::Log.level = Chef::Config[:log_level]
+
+# load ohai
+Ohai::Config[:plugin_path] << opts[:plugins]
+ohai = Ohai::System.new
+ohai.all_plugins
+ohai.seen_plugins
+
+# get node
+host = Chef::Config[:node_name] || ohai[:fqdn] || ohai[:hostname]
+client = Chef::REST.new(Chef::Config[:chef_server_url], host, Chef::Config[:client_key])
+node = client.get_rest("nodes/#{host}")
+
+# refresh node automatic contents
+node.automatic_attrs.keys.each { |key| node.automatic_attrs[key] = ohai.data[key] if ohai.data[key] }
+ohai.data.keys.each { |key| node.automatic_attrs[key] = ohai.data[key] }
+node.set[:collect_agent][:flag] = "collect_agent"
+
+# post node
+client.put_rest("nodes/#{host}", node)
