@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = "collect-agent"
-  s.version     = "0.2.4"
+  s.version     = "0.2.5"
   s.authors     = ["Vasiliev D.V."]
   s.email       = %w(vadv.mkn@gmail.com)
   s.summary     = %q{Chef collect agent}

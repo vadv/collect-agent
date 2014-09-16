@@ -26,9 +26,10 @@ Ohai::Log.level = Chef::Config[:log_level]
 
 # load ohai
 Ohai::Config[:plugin_path] << opts[:plugins]
+Ohai::Config[:plugin_path].uniq!
+
 ohai = Ohai::System.new
 ohai.all_plugins
-ohai.seen_plugins
 
 # get node
 host = Chef::Config[:node_name] || ohai[:fqdn] || ohai[:hostname]
